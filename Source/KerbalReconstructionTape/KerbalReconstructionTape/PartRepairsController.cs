@@ -68,9 +68,4 @@ namespace KerbalReconstructionTape
             return attribHolder;
         }
     }
-
-    class CustomPRCData
-    {
-        public BaseEvent PAWButton;
-    }
 }

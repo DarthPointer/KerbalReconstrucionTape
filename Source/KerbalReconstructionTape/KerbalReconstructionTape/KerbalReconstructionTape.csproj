@@ -34,8 +34,9 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\..\KSP\Kerbal Space Program 1.8.1 Testzone\KSP_x64_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
-    <Reference Include="KerbalRepairsInterface">
-      <HintPath>..\..\..\..\..\KSP\Kerbal Space Program 1.10.0 Light\GameData\KerbalRepairsInterface\KerbalRepairsInterface.dll</HintPath>
+    <Reference Include="KerbalRepairsInterface, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\KSP\Kerbal Space Program 1.10.0 Light\GameData\000_KerbalRepairsInterface\KerbalRepairsInterface.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -53,6 +54,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CustomPRCData.cs" />
     <Compile Include="PartRepairsController.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
