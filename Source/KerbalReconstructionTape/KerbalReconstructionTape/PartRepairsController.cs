@@ -10,7 +10,17 @@ namespace KerbalReconstructionTape
 {
     public class PartRepairsController : PartModule, IRepairsController
     {
-        HashSet<RepairData> repairDatas = new HashSet<RepairData>();
+        List<RepairData> repairDatas = new List<RepairData>();
+        List<IRepairable> repairables = new List<IRepairable>();
+
+        [KSPEvent(guiName = "Request repairs", groupName = "KRT", groupDisplayName = "Kerbal Reconstruction Tape", guiActive = true, guiActiveUncommand = true, guiActiveUnfocused = true, requireFullControl = false)]
+        void RequestRepairs()
+        {
+            foreach (IRepairable repairable in repairables)
+            {
+                repairable.RequestRepairs();
+            }
+        }
 
         #region PartModule
 
@@ -23,6 +33,7 @@ namespace KerbalReconstructionTape
                 foreach (IRepairable repairable in part.FindModulesImplementing<IRepairable>())
                 {
                     repairable.AcceptRepairsController(this);
+                    repairables.Add(repairable);
                     c++;
                 }
                 Debug.Log($"[KRT] found {c} IRepairable modules");
@@ -36,12 +47,31 @@ namespace KerbalReconstructionTape
         {
             repairDatas.Add(repairData);
 
-            KSPEvent attribHolder = GenerateRepairOptionAttribs(repairData);
+            KSPEvent attribHolder = GenerateRepairOptionSelectionAttribs(repairData);
             repairData.customControllerData = new CustomPRCData();
             BaseEvent PAWButton = new BaseEvent(Events, repairData.RepairOptionDescription, () =>
             {
+                if (repairData == null)
+                {
+                    Debug.LogError($"[KRT] Repair toggle button pressed but relevant repairData is null");
+                    return;
+                }
                 repairData.Toggle();
-                Events[repairData.RepairOptionDescription].guiName = repairData.InProgress ? $"Stop: {repairData.RepairOptionDescription}" : $"Start: {repairData.RepairOptionDescription}";
+
+                if (repairData.IsSelected)
+                {
+                    string displayedResList = $"Chosen repair option is {repairData.RepairOptionDescription}.\nIt needs this set of rsources to be completed\n(Assuming repair efficiency is not lower than 1):";
+                    foreach (KeyValuePair<string, double> i in repairData.RequestedResources)
+                    {
+                        displayedResList += $"\n{PartResourceLibrary.Instance.GetDefinition(i.Key).displayName}: {i.Value}";
+                    }
+                    PopupDialog.SpawnPopupDialog(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), "KRTRepairRequests", "Repair Option Chosen", displayedResList, "Prepare Duct Tape!", false, HighLogic.UISkin);
+                    (repairData.customControllerData as CustomPRCData).PAWButton.guiName = $"Deselect: {repairData.RepairOptionDescription}";
+                }
+                else
+                {
+                    (repairData.customControllerData as CustomPRCData).PAWButton.guiName = $"Select: {repairData.RepairOptionDescription}";
+                }
             }, attribHolder);
 
             Events.Add(PAWButton);
@@ -52,19 +82,25 @@ namespace KerbalReconstructionTape
         {
             Events.Remove((repairData.customControllerData as CustomPRCData).PAWButton);
             part.Events.Remove((repairData.customControllerData as CustomPRCData).PAWButton);
+            part.PartActionWindow.displayDirty = true;
 
             repairDatas.Remove(repairData);
         }
         #endregion
 
-        static KSPEvent GenerateRepairOptionAttribs(RepairData repairData)
+        static KSPEvent GenerateRepairOptionSelectionAttribs(RepairData repairData)
         {
-            KSPEvent attribHolder = new KSPEvent();
-            attribHolder.guiActive = true;
-            attribHolder.guiActiveUncommand = true;
-            attribHolder.guiActiveUnfocused = true;
-            attribHolder.requireFullControl = false;
-            attribHolder.guiName = $"Start: {repairData.RepairOptionDescription}";
+            KSPEvent attribHolder = new KSPEvent
+            {
+                guiActive = true,
+                guiActiveUncommand = true,
+                guiActiveUnfocused = true,
+                requireFullControl = false,
+                guiName = $"Select: {repairData.RepairOptionDescription}",
+                groupName = "KRTRepeirsSelection",
+                groupDisplayName = "KRT Repairs Selection",
+                name = repairData.RepairOptionDescription
+            };
             return attribHolder;
         }
     }
