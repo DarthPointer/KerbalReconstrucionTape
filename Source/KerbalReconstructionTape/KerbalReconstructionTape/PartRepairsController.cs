@@ -10,6 +10,8 @@ namespace KerbalReconstructionTape
 {
     public class PartRepairsController : PartModule, IRepairsController
     {
+        static List<PartRepairsController> controllersCatchingAssignments = new List<PartRepairsController>();
+
         List<RepairData> repairDatas = new List<RepairData>();
         List<IRepairable> repairables = new List<IRepairable>();
 
@@ -51,37 +53,17 @@ namespace KerbalReconstructionTape
             repairData.customControllerData = new CustomPRCData();
             BaseEvent PAWButton = new BaseEvent(Events, repairData.RepairOptionDescription, () =>
             {
-                if (repairData == null)
-                {
-                    Debug.LogError($"[KRT] Repair toggle button pressed but relevant repairData is null");
-                    return;
-                }
-                repairData.Toggle();
-
-                if (repairData.IsSelected)
-                {
-                    string displayedResList = $"Chosen repair option is {repairData.RepairOptionDescription}.\nIt needs this set of rsources to be completed\n(Assuming repair efficiency is not lower than 1):";
-                    foreach (KeyValuePair<string, double> i in repairData.RequestedResources)
-                    {
-                        displayedResList += $"\n{PartResourceLibrary.Instance.GetDefinition(i.Key).displayName}: {i.Value}";
-                    }
-                    PopupDialog.SpawnPopupDialog(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), "KRTRepairRequests", "Repair Option Chosen", displayedResList, "Prepare Duct Tape!", false, HighLogic.UISkin);
-                    (repairData.customControllerData as CustomPRCData).PAWButton.guiName = $"Deselect: {repairData.RepairOptionDescription}";
-                }
-                else
-                {
-                    (repairData.customControllerData as CustomPRCData).PAWButton.guiName = $"Select: {repairData.RepairOptionDescription}";
-                }
+                ToggleRepairSelection(repairData);
             }, attribHolder);
 
             Events.Add(PAWButton);
-            (repairData.customControllerData as CustomPRCData).PAWButton = PAWButton;
+            (repairData.customControllerData as CustomPRCData).PAWSelectionToggleButton = PAWButton;
         }
 
         public void RemoveRepair(RepairData repairData)
         {
-            Events.Remove((repairData.customControllerData as CustomPRCData).PAWButton);
-            part.Events.Remove((repairData.customControllerData as CustomPRCData).PAWButton);
+            Events.Remove((repairData.customControllerData as CustomPRCData).PAWSelectionToggleButton);
+            part.Events.Remove((repairData.customControllerData as CustomPRCData).PAWSelectionToggleButton);
             part.PartActionWindow.displayDirty = true;
 
             repairDatas.Remove(repairData);
@@ -102,6 +84,72 @@ namespace KerbalReconstructionTape
                 name = repairData.RepairOptionDescription
             };
             return attribHolder;
+        }
+
+        static KSPEvent GenerateRepairAssignmentCatchingToggleAtribs(RepairData repairData)
+        {
+            KSPEvent attribHolder = new KSPEvent
+            {
+                guiActive = true,
+                guiActiveUncommand = true,
+                guiActiveUnfocused = true,
+                requireFullControl = false,
+                guiName = $"Start Assigning: {repairData.RepairOptionDescription}",
+                groupName = "KRTRepeirsAssignment",
+                groupDisplayName = "KRT Repairs Assignment",
+                name = repairData.RepairOptionDescription
+            };
+            return attribHolder;
+        }
+
+        void SelectRepair(RepairData repairData)        // Does not call repairData.Select, supposed to be used after/before calling it or Toggle somewhere else
+        {
+            string displayedResList = $"Chosen repair option is {repairData.RepairOptionDescription}.\nIt needs this set of rsources to be completed\n(Assuming repair efficiency is not lower than 1):";
+            foreach (KeyValuePair<string, double> i in repairData.RequestedResources)
+            {
+                displayedResList += $"\n{PartResourceLibrary.Instance.GetDefinition(i.Key).displayName}: {i.Value}";
+            }
+            PopupDialog.SpawnPopupDialog(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), "KRTRepairRequests", "Repair Option Chosen", displayedResList, "Prepare Duct Tape!", false, HighLogic.UISkin);
+            (repairData.customControllerData as CustomPRCData).PAWSelectionToggleButton.guiName = $"Deselect: {repairData.RepairOptionDescription}";
+
+            KSPEvent attribHolder = GenerateRepairAssignmentCatchingToggleAtribs(repairData);
+            BaseEvent PAWButton = new BaseEvent(Events, repairData.RepairOptionDescription, () =>
+            {
+                //
+            }, attribHolder);
+
+            Events.Add(PAWButton);
+            (repairData.customControllerData as CustomPRCData).PAWCatchingAssignmentButton = PAWButton;
+        }
+
+        void DeselectRepair(RepairData repairData)      // Does not call repairData.Deselect, supposed to be used after/before calling it or Toggle somewhere else
+        {
+            CustomPRCData cPRCD = (repairData.customControllerData as CustomPRCData);
+            cPRCD.PAWSelectionToggleButton.guiName = $"Select: {repairData.RepairOptionDescription}";
+
+            Events.Remove(cPRCD.PAWCatchingAssignmentButton);
+            part.Events.Remove(cPRCD.PAWCatchingAssignmentButton);
+            part.PartActionWindow.displayDirty = true;
+            cPRCD.PAWCatchingAssignmentButton = null;
+        }
+
+        void ToggleRepairSelection(RepairData repairData)
+        {
+            if (repairData == null)
+            {
+                Debug.LogError($"[KRT] Repair toggle button pressed but relevant repairData is null");
+                return;
+            }
+            repairData.ToggleSelection();
+
+            if (repairData.IsSelected)
+            {
+                SelectRepair(repairData);
+            }
+            else
+            {
+                DeselectRepair(repairData);
+            }
         }
     }
 }

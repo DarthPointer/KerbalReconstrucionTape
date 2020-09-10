@@ -9,7 +9,8 @@ namespace KerbalReconstructionTape
 {
     class CustomPRCData : IKRISerializedCustomData
     {
-        public BaseEvent PAWButton;
+        public BaseEvent PAWSelectionToggleButton;
+        public BaseEvent PAWCatchingAssignmentButton;
 
         #region IKRISerializedCustomData
         public string Serialize()

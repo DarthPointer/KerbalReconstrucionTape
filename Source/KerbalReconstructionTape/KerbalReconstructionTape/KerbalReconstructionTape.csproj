@@ -57,6 +57,7 @@
     <Compile Include="CustomPRCData.cs" />
     <Compile Include="PartRepairsController.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RepairParticipant.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
