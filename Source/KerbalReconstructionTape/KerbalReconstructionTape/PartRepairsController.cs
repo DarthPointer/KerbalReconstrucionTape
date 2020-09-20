@@ -15,14 +15,33 @@ namespace KerbalReconstructionTape
         List<RepairData> repairDatas = new List<RepairData>();
         List<IRepairable> repairables = new List<IRepairable>();
 
-        [KSPEvent(guiName = "Request repairs", groupName = "KRT", groupDisplayName = "Kerbal Reconstruction Tape", guiActive = true, guiActiveUncommand = true, guiActiveUnfocused = true, requireFullControl = false)]
-        void RequestRepairs()
+        #region Permanent KSPEvents
+        [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Maximum Selection", groupName = "KRTRepeirsSelection", groupDisplayName = "KRT Repairs Selection")]
+        void MaxSelection()
         {
-            foreach (IRepairable repairable in repairables)
+            List<RepairData> repairs = new List<RepairData>(repairDatas);
+            repairs.ForEach((RepairData a) =>
             {
-                repairable.RequestRepairs();
-            }
+                if (!a.IsSelected && a.UseForFullRepair)
+                {
+                    a.Select();
+                }
+            });
         }
+
+        [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Maximum Deselection", groupName = "KRTRepeirsSelection", groupDisplayName = "KRT Repairs Selection")]
+        void FullDeselection()
+        {
+            List<RepairData> repairs = new List<RepairData>(repairDatas);
+            repairs.ForEach((RepairData a) =>
+            {
+                if (a.IsSelected)
+                {
+                    a.Deselect();
+                }
+            });
+        }
+        #endregion
 
         #region PartModule
 
@@ -70,6 +89,7 @@ namespace KerbalReconstructionTape
         }
         #endregion
 
+        #region Internal Methods
         static KSPEvent GenerateRepairOptionSelectionAttribs(RepairData repairData)
         {
             KSPEvent attribHolder = new KSPEvent
@@ -151,5 +171,6 @@ namespace KerbalReconstructionTape
                 DeselectRepair(repairData);
             }
         }
+        #endregion
     }
 }
