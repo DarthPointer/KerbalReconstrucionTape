@@ -24,7 +24,7 @@ namespace KerbalReconstructionTape
             {
                 if (!a.IsSelected && a.UseForFullRepair)
                 {
-                    a.Select();
+                    (a.customControllerData as CustomPRCData).PAWSelectionToggleButton.Invoke();        // We are literally clicking the button. 100% sure it will work right!
                 }
             });
         }
@@ -37,7 +37,7 @@ namespace KerbalReconstructionTape
             {
                 if (a.IsSelected)
                 {
-                    a.Deselect();
+                    (a.customControllerData as CustomPRCData).PAWSelectionToggleButton.Invoke();        // We are literally clicking the button. 100% sure it will work right!
                 }
             });
         }
