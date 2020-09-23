@@ -188,7 +188,12 @@ namespace KerbalReconstructionTape
         static void AssignRepair(RepairData repairData)
         {
             repairsCatchingAssignments.Add(repairData);
-            for
+
+            CleanList(participantsCatchingAssignments);
+            foreach (IRepairParticipant repairParticipant in participantsCatchingAssignments)
+            {
+                PerformAssignment(repairParticipant, repairData);
+            }
         }
 
         static void StopAssigningRepair(RepairData repairData)
@@ -201,6 +206,11 @@ namespace KerbalReconstructionTape
 
         static void PerformAssignment(IRepairParticipant repairParticipant, RepairData repairData)
         {
+        }
+
+        static void CleanList<T>(List<T> list)
+        {
+            list.RemoveAll((T a) => a == null);
         }
         #endregion
     }
