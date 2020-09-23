@@ -10,7 +10,10 @@ namespace KerbalReconstructionTape
 {
     public class PartRepairsController : PartModule, IRepairsController
     {
-        static List<PartRepairsController> controllersCatchingAssignments = new List<PartRepairsController>();
+        #region Static Assignment Lists
+        public static List<RepairData> repairsCatchingAssignments = new List<RepairData>();
+        public static List<IRepairParticipant> participantsCatchingAssignments = new List<IRepairParticipant>();
+        #endregion
 
         List<RepairData> repairDatas = new List<RepairData>();
         List<IRepairable> repairables = new List<IRepairable>();
@@ -22,6 +25,10 @@ namespace KerbalReconstructionTape
             List<RepairData> repairs = new List<RepairData>(repairDatas);
             repairs.ForEach((RepairData a) =>
             {
+                if (a == null)
+                {
+                    return;
+                }
                 if (!a.IsSelected && a.UseForFullRepair)
                 {
                     (a.customControllerData as CustomPRCData).PAWSelectionToggleButton.Invoke();        // We are literally clicking the button. 100% sure it will work right!
@@ -35,6 +42,10 @@ namespace KerbalReconstructionTape
             List<RepairData> repairs = new List<RepairData>(repairDatas);
             repairs.ForEach((RepairData a) =>
             {
+                if (a == null)
+                {
+                    return;
+                }
                 if (a.IsSelected)
                 {
                     (a.customControllerData as CustomPRCData).PAWSelectionToggleButton.Invoke();        // We are literally clicking the button. 100% sure it will work right!
@@ -89,7 +100,7 @@ namespace KerbalReconstructionTape
         }
         #endregion
 
-        #region Internal Methods
+        #region Internal Methods for Repair Selection
         static KSPEvent GenerateRepairOptionSelectionAttribs(RepairData repairData)
         {
             KSPEvent attribHolder = new KSPEvent
@@ -101,22 +112,6 @@ namespace KerbalReconstructionTape
                 guiName = $"Select: {repairData.RepairOptionDescription}",
                 groupName = "KRTRepeirsSelection",
                 groupDisplayName = "KRT Repairs Selection",
-                name = repairData.RepairOptionDescription
-            };
-            return attribHolder;
-        }
-
-        static KSPEvent GenerateRepairAssignmentCatchingToggleAtribs(RepairData repairData)
-        {
-            KSPEvent attribHolder = new KSPEvent
-            {
-                guiActive = true,
-                guiActiveUncommand = true,
-                guiActiveUnfocused = true,
-                requireFullControl = false,
-                guiName = $"Start Assigning: {repairData.RepairOptionDescription}",
-                groupName = "KRTRepeirsAssignment",
-                groupDisplayName = "KRT Repairs Assignment",
                 name = repairData.RepairOptionDescription
             };
             return attribHolder;
@@ -135,7 +130,7 @@ namespace KerbalReconstructionTape
             KSPEvent attribHolder = GenerateRepairAssignmentCatchingToggleAtribs(repairData);
             BaseEvent PAWButton = new BaseEvent(Events, repairData.RepairOptionDescription, () =>
             {
-                //
+                AssignRepair(repairData);
             }, attribHolder);
 
             Events.Add(PAWButton);
@@ -170,6 +165,42 @@ namespace KerbalReconstructionTape
             {
                 DeselectRepair(repairData);
             }
+        }
+        #endregion
+
+        #region Internal Methods for Repairs Assignment
+        static KSPEvent GenerateRepairAssignmentCatchingToggleAtribs(RepairData repairData)
+        {
+            KSPEvent attribHolder = new KSPEvent
+            {
+                guiActive = true,
+                guiActiveUncommand = true,
+                guiActiveUnfocused = true,
+                requireFullControl = false,
+                guiName = $"Start Assigning: {repairData.RepairOptionDescription}",
+                groupName = "KRTRepeirsAssignment",
+                groupDisplayName = "KRT Repairs Assignment",
+                name = repairData.RepairOptionDescription
+            };
+            return attribHolder;
+        }
+
+        static void AssignRepair(RepairData repairData)
+        {
+            repairsCatchingAssignments.Add(repairData);
+            for
+        }
+
+        static void StopAssigningRepair(RepairData repairData)
+        {
+        }
+
+        static void CutRepairAssignments(RepairData repairData)
+        { 
+        }
+
+        static void PerformAssignment(IRepairParticipant repairParticipant, RepairData repairData)
+        {
         }
         #endregion
     }

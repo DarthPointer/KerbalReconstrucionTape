@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace KerbalReconstructionTape
 {
-    public class RepairParticipant : PartModule
+    public interface IRepairParticipant
     {
         
     }
