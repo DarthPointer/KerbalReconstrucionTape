@@ -130,7 +130,7 @@ namespace KerbalReconstructionTape
             KSPEvent attribHolder = GenerateRepairAssignmentCatchingToggleAtribs(repairData);
             BaseEvent PAWButton = new BaseEvent(Events, repairData.RepairOptionDescription, () =>
             {
-                AssignRepair(repairData);
+                ToggleRepairAssigning(repairData);
             }, attribHolder);
 
             Events.Add(PAWButton);
@@ -146,6 +146,9 @@ namespace KerbalReconstructionTape
             part.Events.Remove(cPRCD.PAWCatchingAssignmentButton);
             part.PartActionWindow.displayDirty = true;
             cPRCD.PAWCatchingAssignmentButton = null;
+
+            StopRepairAssignment(repairData, cPRCD);
+            CutRepairAssignments(repairData);
         }
 
         void ToggleRepairSelection(RepairData repairData)
@@ -185,19 +188,31 @@ namespace KerbalReconstructionTape
             return attribHolder;
         }
 
-        static void AssignRepair(RepairData repairData)
+        static void StartRepairAssignment(RepairData repairData, CustomPRCData customPRCData)
         {
-            repairsCatchingAssignments.Add(repairData);
-
-            CleanList(participantsCatchingAssignments);
-            foreach (IRepairParticipant repairParticipant in participantsCatchingAssignments)
-            {
-                PerformAssignment(repairParticipant, repairData);
-            }
+            customPRCData.PAWCatchingAssignmentButton.guiName = $"Stop Assigning: {repairData.RepairOptionDescription}";
+            repairsCatchingAssignments.RemoveAll((RepairData a) => a == repairData);
         }
 
-        static void StopAssigningRepair(RepairData repairData)
+        static void StopRepairAssignment(RepairData repairData, CustomPRCData customPRCData)
         {
+            customPRCData.PAWCatchingAssignmentButton.guiName = $"Start Assigning: {repairData.RepairOptionDescription}";
+            repairsCatchingAssignments.Add(repairData);
+        }
+
+        static void ToggleRepairAssigning(RepairData repairData)
+        {
+            CustomPRCData customPRCData = repairData.customControllerData as CustomPRCData;
+            customPRCData.isBeingAssigned = !customPRCData.isBeingAssigned;
+
+            if (customPRCData.isBeingAssigned)
+            {
+                StartRepairAssignment(repairData, customPRCData);
+            }
+            else
+            {
+                StopRepairAssignment(repairData, customPRCData);
+            }
         }
 
         static void CutRepairAssignments(RepairData repairData)
@@ -206,9 +221,10 @@ namespace KerbalReconstructionTape
 
         static void PerformAssignment(IRepairParticipant repairParticipant, RepairData repairData)
         {
+
         }
 
-        static void CleanList<T>(List<T> list)
+        static void CleanNullRefs<T>(List<T> list)
         {
             list.RemoveAll((T a) => a == null);
         }

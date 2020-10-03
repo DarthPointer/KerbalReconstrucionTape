@@ -12,6 +12,9 @@ namespace KerbalReconstructionTape
         public BaseEvent PAWSelectionToggleButton;
         public BaseEvent PAWCatchingAssignmentButton;
 
+        public bool isBeingAssigned = false;
+        public List<IRepairParticipant> assignedParticipants = new List<IRepairParticipant>();
+
         #region IKRISerializedCustomData
         public string Serialize()
         {
