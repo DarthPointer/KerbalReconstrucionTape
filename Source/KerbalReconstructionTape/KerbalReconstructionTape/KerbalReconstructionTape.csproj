@@ -55,6 +55,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CustomPRCData.cs" />
+    <Compile Include="KerbalReconstructionTapeAddon.cs" />
     <Compile Include="PartRepairsController.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="IRepairParticipant.cs" />

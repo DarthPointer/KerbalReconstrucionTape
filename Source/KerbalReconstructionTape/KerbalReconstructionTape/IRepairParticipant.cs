@@ -13,8 +13,8 @@ namespace KerbalReconstructionTape
     {
         List<RepairData> tasks = new List<RepairData>();
         bool inEditor = true;
-        float handsCurvature;                               // aka repairs quality
-        float swiftness;                                    // aka repairs speed
+        double handsCurvature;                               // aka repairs quality
+        double swiftness;                                    // aka repairs speed
 
         public override void OnStart(StartState state)
         {
