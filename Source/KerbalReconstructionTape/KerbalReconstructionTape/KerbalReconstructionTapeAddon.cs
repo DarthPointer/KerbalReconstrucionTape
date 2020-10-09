@@ -5,17 +5,81 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
+
 namespace KerbalReconstructionTape
 {
     [KSPAddon(KSPAddon.Startup.AllGameScenes, false)]
     class KerbalReconstructionTapeAddon
     {
+        #region Static
+        static KerbalReconstructionTapeAddon instance;
+        public static double GetRepairQuality(string traitName, int level)
+        {
+            if (instance != null)
+            {
+                if (instance.traitRepairQualities.TryGetValue(traitName, out List<double> tRQ))
+                {
+                    if (level < tRQ.Count && level >= 0)
+                    {
+                        return tRQ[level];
+                    }
+                    else
+                    {
+                        Debug.LogError($"[KRT] Requested repair quality for trait {traitName} for level {level}, that is not present in the config");
+                        return 0;
+                    }
+                }
+                else
+                {
+                    Debug.LogError($"[KRT] Requested repair quality for trait {traitName} which is not present in the config");
+                    return 0;
+                }
+            }
+            else
+            {
+                Debug.LogError("[KRT] KRTAddon.GetRepairQuality is called, but KRTAddon is not instantaniated");
+                return 0;
+            }
+        }
+
+        public static double GetRepairSpeed(string traitName, int level)
+        {
+            if (instance != null)
+            {
+                if (instance.traitRepairSpeeds.TryGetValue(traitName, out List<double> tRS))
+                {
+                    if (level < tRS.Count && level >= 0)
+                    {
+                        return tRS[level];
+                    }
+                    else
+                    {
+                        Debug.LogError($"[KRT] Requested repair speed for trait {traitName} for level {level}, that is not present in the config");
+                        return 0;
+                    }
+                }
+                else
+                {
+                    Debug.LogError($"[KRT] Requested repair speed for trait {traitName} which is not present in the config");
+                    return 0;
+                }
+            }
+            else
+            {
+                Debug.LogError("[KRT] KRTAddon.GetRepairSpeed is called, but KRTAddon is not instantaniated");
+                return 0;
+            }
+        }
+        #endregion
+
         Dictionary<string, List<double>> traitRepairQualities = new Dictionary<string, List<double>>();
         Dictionary<string, List<double>> traitRepairSpeeds = new Dictionary<string, List<double>>();
 
         #region KSPAddon
         public void Start()
         {
+            instance = this;
+
             ConfigNode configNode = GameDatabase.Instance.GetConfigNodes("REPAIR_TRAITS")?[0];
             if (configNode == null)
             {
@@ -53,7 +117,7 @@ namespace KerbalReconstructionTape
                                 string qualString = levelNode.GetValue("quality");
                                 string speedString = levelNode.GetValue("speed");
 
-                                double qual, speed;
+                                double qual, speed;                 // Not embedding defs for readability
 
                                 if (double.TryParse(qualString, out qual) && double.TryParse(speedString, out speed))
                                 {
@@ -77,6 +141,11 @@ namespace KerbalReconstructionTape
                     }
                 }
             }
+        }
+
+        public void OnDestroy()
+        {
+            instance = null;
         }
         #endregion
     }

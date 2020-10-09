@@ -55,7 +55,6 @@ namespace KerbalReconstructionTape
         #endregion
 
         #region PartModule
-
         public override void OnStart(StartState state)
         {
             if (state != StartState.Editor)
@@ -72,6 +71,31 @@ namespace KerbalReconstructionTape
             }
         }
 
+        public override void OnFixedUpdate()
+        {
+            foreach (RepairData repairData in repairDatas)
+            {
+                CustomPRCData cPRCD = repairData.customControllerData as CustomPRCData;
+
+                bool foundNulls = false;
+                foreach (IRepairParticipant repairParticipant in cPRCD.assignedParticipants)
+                {
+                    if (repairParticipant == null)
+                    {
+                        foundNulls = true;
+                    }
+                    else
+                    {
+                        // TODO: repair progress handling
+                    }
+                }
+
+                if (foundNulls)
+                {
+                    cPRCD.assignedParticipants.RemoveAll((IRepairParticipant a) => a == null);
+                }
+            }
+        }
         #endregion
 
         #region IReparisController
@@ -80,8 +104,8 @@ namespace KerbalReconstructionTape
             repairDatas.Add(repairData);
 
             KSPEvent attribHolder = GenerateRepairOptionSelectionAttribs(repairData);
-            repairData.customControllerData = new CustomPRCData();
-            BaseEvent PAWButton = new BaseEvent(Events, repairData.RepairOptionDescription, () =>
+            repairData.customControllerData = new CustomPRCData(repairData.RequestedResources.Keys.AsEnumerable());
+            BaseEvent PAWButton = new BaseEvent(Events, $"SelectionToggle {repairData.RepairOptionDescription}", () =>
             {
                 ToggleRepairSelection(repairData);
             }, attribHolder);
@@ -112,7 +136,6 @@ namespace KerbalReconstructionTape
                 guiName = $"Select: {repairData.RepairOptionDescription}",
                 groupName = "KRTRepeirsSelection",
                 groupDisplayName = "KRT Repairs Selection",
-                name = repairData.RepairOptionDescription
             };
             return attribHolder;
         }
@@ -128,7 +151,7 @@ namespace KerbalReconstructionTape
             (repairData.customControllerData as CustomPRCData).PAWSelectionToggleButton.guiName = $"Deselect: {repairData.RepairOptionDescription}";
 
             KSPEvent attribHolder = GenerateRepairAssignmentCatchingToggleAtribs(repairData);
-            BaseEvent PAWButton = new BaseEvent(Events, repairData.RepairOptionDescription, () =>
+            BaseEvent PAWButton = new BaseEvent(Events, $"AssigningToggle: {repairData.RepairOptionDescription}", () =>
             {
                 ToggleRepairAssigning(repairData);
             }, attribHolder);
@@ -174,7 +197,7 @@ namespace KerbalReconstructionTape
         #region Internal Methods for Repairs Assignment
         static KSPEvent GenerateRepairAssignmentCatchingToggleAtribs(RepairData repairData)
         {
-            KSPEvent attribHolder = new KSPEvent
+            return new KSPEvent
             {
                 guiActive = true,
                 guiActiveUncommand = true,
@@ -182,25 +205,46 @@ namespace KerbalReconstructionTape
                 requireFullControl = false,
                 guiName = $"Start Assigning: {repairData.RepairOptionDescription}",
                 groupName = "KRTRepeirsAssignment",
-                groupDisplayName = "KRT Repairs Assignment",
-                name = repairData.RepairOptionDescription
+                groupDisplayName = "KRT Repairs Assignment"
             };
-            return attribHolder;
         }
 
-        static void StartRepairAssignment(RepairData repairData, CustomPRCData customPRCData)
+        static KSPEvent GenerateCutAssignmentsAttribs(RepairData repairData)
+        {
+            return new KSPEvent
+            {
+                guiActive = true,
+                guiActiveUncommand = true,
+                guiActiveUnfocused = true,
+                requireFullControl = false,
+                guiName = $"Cut Assignments For {repairData.RepairOptionDescription}",
+                groupName = "KRTRepeirsAssignment",
+                groupDisplayName = "KRT Repairs Assignment"
+            };
+        }
+
+        void StartRepairAssignment(RepairData repairData, CustomPRCData customPRCData)
         {
             customPRCData.PAWCatchingAssignmentButton.guiName = $"Stop Assigning: {repairData.RepairOptionDescription}";
+            repairsCatchingAssignments.Add(repairData);
+
+            customPRCData.PAWCutAssignmentsButton = new BaseEvent(Events, $"CutAssignmentsFor {repairData.RepairOptionDescription}",
+                () => CutRepairAssignments(repairData), GenerateCutAssignmentsAttribs(repairData));
+
+            participantsCatchingAssignments.RemoveAll((IRepairParticipant a) => a == null);
+            foreach (IRepairParticipant assigningRepairParticipant in participantsCatchingAssignments)
+            {
+                PerformAssignment(assigningRepairParticipant, repairData);
+            }
+        }
+
+        void StopRepairAssignment(RepairData repairData, CustomPRCData customPRCData)
+        {
+            customPRCData.PAWCatchingAssignmentButton.guiName = $"Start Assigning: {repairData.RepairOptionDescription}";
             repairsCatchingAssignments.RemoveAll((RepairData a) => a == repairData);
         }
 
-        static void StopRepairAssignment(RepairData repairData, CustomPRCData customPRCData)
-        {
-            customPRCData.PAWCatchingAssignmentButton.guiName = $"Start Assigning: {repairData.RepairOptionDescription}";
-            repairsCatchingAssignments.Add(repairData);
-        }
-
-        static void ToggleRepairAssigning(RepairData repairData)
+        void ToggleRepairAssigning(RepairData repairData)
         {
             CustomPRCData customPRCData = repairData.customControllerData as CustomPRCData;
             customPRCData.isBeingAssigned = !customPRCData.isBeingAssigned;
@@ -215,18 +259,47 @@ namespace KerbalReconstructionTape
             }
         }
 
-        static void CutRepairAssignments(RepairData repairData)
-        { 
+        void CutRepairAssignments(RepairData repairData)
+        {
+            CustomPRCData cPRCD = (repairData.customControllerData as CustomPRCData);
+            if (cPRCD.PAWCutAssignmentsButton != null)
+            {
+                Events.Remove(cPRCD.PAWCutAssignmentsButton);
+                part.Events.Remove(cPRCD.PAWCutAssignmentsButton);
+                cPRCD.PAWCutAssignmentsButton = null;
+            }
+
+            cPRCD.assignedParticipants.RemoveAll((IRepairParticipant a) => a == null);
+            foreach (IRepairParticipant repairParticipant in cPRCD.assignedParticipants)
+            {
+                repairParticipant.DeassignRepair(repairData);
+            }
+            cPRCD.assignedParticipants.Clear();
         }
 
         static void PerformAssignment(IRepairParticipant repairParticipant, RepairData repairData)
         {
+            CustomPRCData cPRCD = repairData.customControllerData as CustomPRCData;
 
-        }
+            cPRCD.assignedParticipants.Add(repairParticipant);
+            repairParticipant.AssignRepair(repairData);
 
-        static void CleanNullRefs<T>(List<T> list)
-        {
-            list.RemoveAll((T a) => a == null);
+            double newlyAssignedQuality = repairParticipant.GetAssignedQuality(repairData);
+
+            if (newlyAssignedQuality > cPRCD.maxAssignedQuality)
+            {
+                cPRCD.maxAssignedQuality = newlyAssignedQuality;
+            }
+
+            if (repairParticipant.IsHandlingThisRepairNow(repairData) && newlyAssignedQuality > cPRCD.currentlyAvailableQuality)
+            {
+                cPRCD.currentlyAvailableQuality = newlyAssignedQuality;
+            }
+
+            if (newlyAssignedQuality > cPRCD.workingAtQuality && (repairData.progressRatio != 0 || cPRCD.isRunning))
+            {
+                // TODO: notify about ability to restart repair for better quality
+            }
         }
         #endregion
     }
